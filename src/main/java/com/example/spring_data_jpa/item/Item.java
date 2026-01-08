@@ -1,9 +1,12 @@
-package com.example.spring_data_jpa;
+package com.example.spring_data_jpa.item;
+
+import com.example.spring_data_jpa.retailer.Retailer;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 public class Item {
@@ -17,6 +20,9 @@ public class Item {
   private String code;
 
   private int quantity;
+
+  @ManyToOne
+  private Retailer retailer;
 
   public Item() {};
 
@@ -42,6 +48,10 @@ public class Item {
     return this.quantity;
   }
 
+  public Retailer getRetailer() {
+    return retailer;
+  }
+
   public void setName(String name) {
     this.name = name;
   }
@@ -56,5 +66,9 @@ public class Item {
 
   public void setQuantity(int qt) {
     this.quantity = qt;
+  }
+
+  public void setRetailer(Retailer retailer) {
+    this.retailer = retailer;
   }
 }

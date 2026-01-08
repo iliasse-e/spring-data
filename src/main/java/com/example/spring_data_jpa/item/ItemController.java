@@ -1,6 +1,7 @@
-package com.example.spring_data_jpa;
+package com.example.spring_data_jpa.item;
 
 import java.net.URI;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,11 +29,22 @@ public class ItemController {
   }
 
   @GetMapping(path = "/{id}")
-  ResponseEntity<Item> findById(@PathVariable Long id, UriComponentsBuilder uriBuilder) {
+  ResponseEntity<Item> findById(@PathVariable Long id) {
     return itemService
             .findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+  }
+
+  @GetMapping("/retailer/{immatriculation}/items")
+  ResponseEntity<List<Item>> findByRetailerImmatriculation(@PathVariable Long immatriculation) {
+    List<Item> items = itemService.findByRetailerImmatriculation(immatriculation);
+
+    if (items.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+
+    return ResponseEntity.ok(items);
   }
 
 }

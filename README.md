@@ -71,5 +71,131 @@ public class UserService {
 }
 ```
 
+## Ajout de méthodes dans une interface de repository
+
+L’interface ``JpaRepository<T, ID>`` déclare beaucoup de méthodes mais elles suffisent rarement pour implémenter les fonctionnalités attendues d’une application. Spring Data JPA utilise une convention de nommage pour générer automatiquement le code sous-jacent et exécuter la requête. La requête est déduite de la signature de la méthode (on parle de query methods).
+
+La convention est la suivante : Spring Data JPA supprime du début de la méthode les prefixes ``find``, ``findAll``, ``read``, ``query``, ``count`` et ``get`` et recherche la présence du mot ``By`` pour marquer le début des critères de filtre. Le terme après ``By`` fait référence à un attribut de l’entité JPA pour lequel on veut appliquer un filtre. Chaque critère doit correspondre à un paramètre de la méthode en respectant l’ordre.
+
+> [!NOTE]
+> [La documentation](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html) décrit les règles de nommage existantes pour les query methods
+
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+
+  User getByLogin(String login);
+
+  long countByEmail(String email);
+
+  List<User> findByNameAndEmail(String name, String email);
+
+  List<User> findByNameOrEmail(String name, String email);
+
+}
+```
+
+Spring Data JPA générera une implémentation pour chaque méthode de ce repository.
+
+Exemple pour *getByLogin* :
+
+```java
+return entityManager.createQuery("select u from User u where u.login = :login", User.class)
+                  .setParameter("login", login)
+                  .getSingleResult();
+```
+
+*countByEmail*:
+
+```java
+return (Long) entityManager.createQuery("select count(u) from User u where u.email = :email")
+                         .setParameter("email", email)
+                         .getSingleResult();
+```
+
+*findByNameAndEmail* :
+
+```java
+return entityManager.createQuery("select u from User u where u.name = :name and u.email = :email", User.class)
+                  .setParameter("name", name)
+                  .setParameter("email", email)
+                  .getResultList();
+```
+
+*findByNameOrEmail* :
+
+```java
+return entityManager.createQuery("select u from User u where u.name = :name or u.email = :email", User.class)
+                  .setParameter("name", name)
+                  .setParameter("email", email)
+                  .getResultList();
+```
+
+### Les entitées liées
+
+Il est même possible de donner des critères sur des entités liées. Ainsi, si la classe ``User`` contient une association vers une entité ``Address`` :
+
+```java
+@Entity
+public class User {
+
+  @Id
+  @GeneratedValue(strategy=GenerationType.IDENTITY)
+  private Long id;
+
+  @OneToOne
+  private Address adress;
+
+  // ...
+}
+```
+et si l’entité ``Address`` contient un champ ``city`` :
+
+```java
+@Entity
+public class Address {
+
+  @Id
+  @GeneratedValue(strategy=GenerationType.IDENTITY)
+  private Long id;
+
+  private String city;
+
+  // ...
+}
+```
+
+Il devient alors possible de définir une méthode dans ``UserRepository`` qui permet de filtrer sur la ville de l’adresse :
+
+```java
+List<User> findByAddressCity(String city);
+```
+
+## Requêtes nommées JPA
+
+```java
+```
+
+```java
+```
+
+
+```java
+```
+
+```java
+```
+
+## Déclaration de requêtes de modification
+
+```java
+```
+
+
+```java
+```
+
+```java
+```
+
 ```java
 ```
