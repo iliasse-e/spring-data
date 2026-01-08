@@ -172,30 +172,101 @@ List<User> findByAddressCity(String city);
 
 ## Requêtes nommées JPA
 
+Avec JPA, il est possible de définir des requêtes nommées grâce à l’annotation ``@NamedQuery``.
+
+Spring Data JPA utilise une convention pour rechercher les requêtes nommées avec JPA. La requête doit porter comme nom, le nom de l’entité suivi de ``.`` suivi du nom de la méthode. Ainsi si on définit une requête nommée sur une entité ``User`` :
+
 ```java
+@Entity
+@NamedQuery(name="User.findByLogin", query="select u from User u where u.login = :login")
+public class User { }
 ```
 
+Il faut ensuite déclarer la méthode dans le repository assigné à l’entité ``User`` :
+
 ```java
+public interface UserRepository extends JpaRepository<User, Long>{
+
+  User findByLogin(@Param("login") String login);
+  // Remarquez la présence de l’annotation @Param qui permet d’associer le paramètre de la méthode au paramètre de la requête nommée.
+
+}
 ```
 
+## Utilisation de @Query
+
+L’annotation ``@Query`` permet de préciser la requête directement sur la méthode elle-même :
+
 
 ```java
+public interface UserRepository extends JpaRepository<User, Long>{
+
+  @Query("select u from User u where u.login = :login")
+  User findByLogin(@Param("login") String login);
+
+}
 ```
 
+*Le comportement par défaut de Spring Data JPA est de chercher la présence de l’annotation ``@Query`` puis la présence d’une requête nommée JPA. S’il n’en existe pas alors Spring Data JPA analyse la signature de la méthode pour essayer d’en déduire la requête à exécuter.*
+
+Pour des requêtes avec peu de paramètres, il est possible d’utiliser la notation pour désigner un paramètre par un numéro d’ordre dans la requête. Cela évite un usage de l’annotation ``@Param`` :
+
 ```java
+@Query("select u from User u where u.login = ?1")
+User findByLogin(String login);
 ```
 
 ## Déclaration de requêtes de modification
 
-```java
-```
-
+Il est possible de créer des query methods pour réaliser des modifications (update, insert, delete). Pour cela, il suffit d’ajouter l’annotation ``@Modifying`` sur la méthode :
 
 ```java
+public interface UserRepository extends JpaRepository<User, Long>{
+
+  @Modifying
+  @Query("update User u set u.login = ?2 where u.id = ?1")
+  void updateLogin(long id, String login);
+
+}
+```
+
+*L’annotation ``@Modifying`` s’utilise toujours conjointement avec l’annotation ``@Query`` ou une requête nommée JPA car il n’existe pas de convention de nommage pour des requêtes de modification.*
+
+
+## Implémentation des méthodes de repository
+
+Il est parfois nécessaire de fournir une implémentation d’une ou de plusieurs méthodes d’un repository. Dans ce cas, il faut isoler les méthodes que l’on souhaite implémenter dans une interface spécifique. Par exemple, on peut créer l’interface ``UserCustomRepository`` :
+
+```java
+public interface UserCustomRepository {
+
+  void doSomethingComplicatedWith(User u);
+
+}
 ```
 
 ```java
+public interface UserRepository extends UserCustomRepository, JpaRepository<User, Long> {
+
+}
 ```
 
+Comme Spring Data JPA détecte une interface parente qui n’hérite pas elle-même de l’interface ``Repository<T, ID>``, il recherche une classe Java portant le même nom que l’interface avec le suffixe ``Impl`` dans le même package ou un sous-package. Si une telle classe existe alors Spring Data JPA tente de créer un bean de cette classe.
+
 ```java
+public class UserCustomRepositoryImpl implements UserCustomRepository {
+
+  @PersistenceContext
+  private EntityManager em;
+
+  @Override
+  public void doSomethingComplicatedWith(User u) {
+    // ...
+  }
+
+}
 ```
+
+Le repository fonctionnera ainsi par délégation. Lorsque la méthode ``UserRepository.doSomethingComplicatedWith`` sera appelée, elle déléguera le traitement à la méthode ``UserCustomRepositoryImpl.doSomethingComplicatedWith``.
+
+*Il est tout à fait possible de fournir une implémentation pour une méthode déclarée dans l’interface ``JpaRepository<T, ID>`` ou une des interfaces parentes. Pour cela, il suffit de déclarer dans l’interface d’implémentation une méthode avec la même signature.*
